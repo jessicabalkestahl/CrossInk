@@ -1,3 +1,24 @@
+[![Buy me a coffee](docs/images/buy-me-a-coffee.svg)](https://ko-fi.com/jessicabalkestahl)
+
+> **This is a personal fork of [CrossInk](https://github.com/uxjulia/CrossInk)** by uxjulia, with a couple of small additions on top.
+
+## What this fork adds
+
+- **Cover + Stats sleep screen**: shows the cover of the book you're reading in soft grayscale, with a footer showing how far through the book you are and your current reading streak. Find it under **Settings → Display → Sleep Screen → Wallpaper → Cover + Stats**. For the best result, set **Cover Filter** to **None**.
+- **Streak Day Starts At**: choose when a new reading-streak day begins, from **Midnight** (the default, same as CrossInk) to **5 AM**. With **3 AM**, a late-night session at 1 AM still counts toward the previous day, so your streak doesn't break. Find it under **Settings → System → Reading Stats**.
+
+Have an idea for a feature? [Open an issue](https://github.com/jessicabalkestahl/CrossInk/issues) and tell me about it. I'd be happy to consider bringing it to life.
+
+### Installing this fork
+
+Download `update.bin` from this fork's [releases page](https://github.com/jessicabalkestahl/CrossInk/releases), copy it to the SD card, then on the reader go to **Settings → System → SD Card Firmware Update** and select it.
+
+Support for CrossInk itself belongs upstream at [uxjulia/CrossInk](https://github.com/uxjulia/CrossInk).
+
+---
+
+*Everything below is CrossInk's original README and still applies to this fork.*
+
 > **This is a personal fork of [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader)** with a focus on improved fonts and minimal reading stats.
 
 ### Supported Devices
@@ -164,10 +185,4 @@ See [Testing and Debugging](./docs/development/testing-debugging.md) for serial 
 
 ## Notice on Contributions
 
-This repository does not accept pull requests. Feature requests may be opened in [discussions](https://github.com/uxjulia/CrossInk/discussions), but major features requiring ongoing support should be directed upstream to [CrossPoint](https://github.com/crosspoint-reader/crosspoint-reader).
-
----
-
-If you'd like to show some love and support ongoing development, please consider supporting me on Ko-fi.
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q5Q01M6S7)
+The original CrossInk repository does not accept pull requests. For this fork, feel free to [open an issue](https://github.com/jessicabalkestahl/CrossInk/issues) with your idea or feature request, and I'll consider it.

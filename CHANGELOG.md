@@ -1,3 +1,10 @@
+## [1.0.0] - 2026-11-08
+
+### Added
+
+- Cover + Stats sleep screen: the current book's cover in grayscale with a footer showing book progress and your reading streak.
+- Streak Day Starts At setting (System > Reading Stats) lets late-night reading count toward the previous day's streak. Defaults to Midnight; can be set from 1 AM to 5 AM.
+
 ## [v1.6.1] - 2026-10-03
 
 ### Added

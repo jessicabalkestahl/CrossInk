@@ -145,7 +145,7 @@ void formatStreakStat(const GlobalReadingStats& globalStats, char* buf, const si
 
   ReadingStatsDateTime today;
   const uint16_t streak =
-      getCurrentLocalReadingStatsDateTime(today) ? globalStats.currentReadingStreak(&today.date) : 0;
+      getCurrentLocalReadingStatsDateTime(today) ? globalStats.currentReadingStreak(&today) : 0;
   if (streak == 0) {
     snprintf(buf, len, "%s", tr(STR_STATS_NO_STREAK));
     return;

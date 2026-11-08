@@ -388,7 +388,7 @@ uint32_t GlobalReadingStats::localResetRevision() { return s_localResetRevision;
 
 void GlobalReadingStats::recordReadingSpan(const ReadingStatsDateTime& localStart, const uint32_t seconds) {
   recordReadingSpanIntoBuckets(timeOfDaySeconds, dayOfWeekSeconds, localStart, seconds);
-  recordReadingSpanIntoHistory(readingHistoryAnchorDay, readingHistoryBits, localStart, seconds);
+  recordReadingSpanIntoHistory(readingHistoryAnchorDay, readingHistoryBits, toReadingDayDateTime(localStart), seconds);
 
   const uint16_t historyLongest = computeReadingHistoryLongestStreak(readingHistoryAnchorDay, readingHistoryBits);
   if (historyLongest > longestReadingStreak) {
@@ -396,8 +396,10 @@ void GlobalReadingStats::recordReadingSpan(const ReadingStatsDateTime& localStar
   }
 }
 
-uint16_t GlobalReadingStats::currentReadingStreak(const ReadingStatsDate* today) const {
-  return computeReadingHistoryCurrentStreak(readingHistoryAnchorDay, readingHistoryBits, today);
+uint16_t GlobalReadingStats::currentReadingStreak(const ReadingStatsDateTime* now) const {
+  if (now == nullptr) return computeReadingHistoryCurrentStreak(readingHistoryAnchorDay, readingHistoryBits, nullptr);
+  const ReadingStatsDate readingDay = toReadingDayDateTime(*now).date;
+  return computeReadingHistoryCurrentStreak(readingHistoryAnchorDay, readingHistoryBits, &readingDay);
 }
 
 uint16_t GlobalReadingStats::displayLongestReadingStreak() const {

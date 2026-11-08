@@ -49,6 +49,6 @@ struct GlobalReadingStats {
   static uint32_t localResetRevision();
 
   void recordReadingSpan(const ReadingStatsDateTime& localStart, uint32_t seconds);
-  uint16_t currentReadingStreak(const ReadingStatsDate* today) const;
+  uint16_t currentReadingStreak(const ReadingStatsDateTime* now) const;
   uint16_t displayLongestReadingStreak() const;
 };

@@ -417,7 +417,7 @@ void drawGlobalStatsCard(GfxRenderer& renderer, const int x, const int y, const 
   if (showRtcStats) {
     ReadingStatsDateTime today;
     const bool hasToday = getCurrentLocalReadingStatsDateTime(today);
-    const uint16_t currentStreak = hasToday ? stats.currentReadingStreak(&today.date) : 0;
+    const uint16_t currentStreak = hasToday ? stats.currentReadingStreak(&today) : 0;
     if (currentStreak > 0) {
       snprintf(buf, sizeof(buf), "%u %s", static_cast<unsigned>(currentStreak), dayCountText(currentStreak));
     } else {

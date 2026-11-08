@@ -266,6 +266,11 @@ const std::vector<SettingInfo>& getBaseSettingsList() {
                            "readingIdleTimeThresholdUnits", StrId::STR_CAT_SYSTEM));
     add(SettingInfo::Toggle(StrId::STR_TRACK_READING_STATS, &CrossPointSettings::trackReadingStats, "trackReadingStats",
                             StrId::STR_CAT_SYSTEM));
+    add(SettingInfo::Enum(StrId::STR_STREAK_DAY_START, &CrossPointSettings::streakDayStartHour,
+                          {StrId::STR_STREAK_DAY_START_MIDNIGHT, StrId::STR_STREAK_DAY_START_1AM,
+                           StrId::STR_STREAK_DAY_START_2AM, StrId::STR_STREAK_DAY_START_3AM,
+                           StrId::STR_STREAK_DAY_START_4AM, StrId::STR_STREAK_DAY_START_5AM},
+                          "streakDayStartHour", StrId::STR_CAT_SYSTEM));
 
     // Frontlight quick-panel state: persisted + web-exposed, category-less so
     // it stays off the Settings screen (edited from the swipe-down panel).

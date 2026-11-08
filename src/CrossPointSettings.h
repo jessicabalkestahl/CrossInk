@@ -37,6 +37,7 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
     QUICK_RESUME = 9,
     MINIMAL_STATS_SLEEP = 10,
     DASHBOARD_SLEEP = 11,
+    COVER_STATS_SLEEP = 12,
     SLEEP_SCREEN_MODE_COUNT
   };
   enum SLEEP_SCREEN_COVER_MODE { FIT = 0, CROP = 1, SLEEP_SCREEN_COVER_MODE_COUNT };
@@ -692,6 +693,10 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   uint8_t quickResumeSleepScreen = QUICK_RESUME_NEVER;
   // Master switch for automatic reading statistics; Time Left pace remains independent.
   uint8_t trackReadingStats = 1;
+  // Local hour (0 = midnight) when a new reading-streak day begins, so late-night reading can
+  // count toward the previous day.
+  uint8_t streakDayStartHour = 0;
+  static constexpr uint8_t MAX_STREAK_DAY_START_HOUR = 5;
 
   ~CrossPointSettings() = default;
 

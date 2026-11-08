@@ -2,6 +2,8 @@
 
 #include <HalClock.h>
 
+#include <algorithm>
+
 #include "CrossPointSettings.h"
 
 namespace {
@@ -226,6 +228,18 @@ ReadingTimeBucket readingTimeBucketForHour(const uint8_t hour) {
     return ReadingTimeBucket::Evening;
   }
   return ReadingTimeBucket::Night;
+}
+
+ReadingStatsDateTime toReadingDayDateTime(const ReadingStatsDateTime& local) {
+  const uint8_t startHour = std::min(SETTINGS.streakDayStartHour, CrossPointSettings::MAX_STREAK_DAY_START_HOUR);
+  ReadingStatsDateTime shifted = local;
+  if (shifted.hour < startHour) {
+    addDaysToReadingStatsDate(shifted.date, -1);
+    shifted.hour = static_cast<uint8_t>(shifted.hour + 24 - startHour);
+  } else {
+    shifted.hour = static_cast<uint8_t>(shifted.hour - startHour);
+  }
+  return shifted;
 }
 
 bool getCurrentLocalReadingStatsDateTime(ReadingStatsDateTime& outDateTime) {

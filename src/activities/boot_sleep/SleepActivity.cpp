@@ -41,6 +41,7 @@
 #include "components/UITheme.h"
 #include "components/themes/dashboard/DashboardTheme.h"
 #include "components/themes/minimal/MinimalTheme.h"
+#include "components/icons/streak.h"
 #include "fontIds.h"
 #include "images/Logo120.h"
 #include "images/MoonIcon.h"
@@ -532,7 +533,8 @@ void SleepActivity::onEnter() {
   const bool sleepScreenUsesRecentBooks = sleepScreen == CrossPointSettings::SLEEP_SCREEN_MODE::READING_STATS_SLEEP ||
                                           sleepScreen == CrossPointSettings::SLEEP_SCREEN_MODE::MINIMAL_SLEEP ||
                                           sleepScreen == CrossPointSettings::SLEEP_SCREEN_MODE::MINIMAL_STATS_SLEEP ||
-                                          sleepScreen == CrossPointSettings::SLEEP_SCREEN_MODE::DASHBOARD_SLEEP;
+                                          sleepScreen == CrossPointSettings::SLEEP_SCREEN_MODE::DASHBOARD_SLEEP ||
+                                          sleepScreen == CrossPointSettings::SLEEP_SCREEN_MODE::COVER_STATS_SLEEP;
   const std::string& recentBookPath = currentBookPath.empty() ? APP_STATE.openEpubPath : currentBookPath;
   if (sleepScreenUsesRecentBooks && !recentBookPath.empty()) {
     RECENT_BOOKS.ensureLoaded();
@@ -582,6 +584,8 @@ void SleepActivity::onEnter() {
       return renderMinimalStatsSleepScreen();
     case (CrossPointSettings::SLEEP_SCREEN_MODE::DASHBOARD_SLEEP):
       return renderDashboardSleepScreen();
+    case (CrossPointSettings::SLEEP_SCREEN_MODE::COVER_STATS_SLEEP):
+      return renderCoverStatsSleepScreen();
     default:
       return renderDefaultSleepScreen();
   }
@@ -950,6 +954,166 @@ void SleepActivity::renderDashboardSleepScreen() const {
   theme.drawSleepScreen(renderer, book, &bookStats, &globalStats, progressPercent, chapterTitle.c_str(),
                         sleepCoverFilterInvertsGeneratedScreen());
   renderer.displayBuffer(HalDisplay::HALF_REFRESH, TURN_OFF_SCREEN_AFTER_SLEEP_REFRESH);
+}
+
+// Full cover above a footer with book progress and the reading streak. Like the Cover sleep
+// screen, the cover keeps its native gray levels. Panels with absolute grayscale get complete
+// four-tone planes, so the footer is drawn into each plane as plain B/W (black = 0,0 and
+// white = 1,1); Direct-capable panels such as the X3 then show it in one refresh instead of a
+// B/W intermediate frame. Other panels fall back to the B/W base plus relative overlay passes.
+void SleepActivity::renderCoverStatsSleepScreen() const {
+  const std::string& path = currentBookPath.empty() ? APP_STATE.openEpubPath : currentBookPath;
+  if (path.empty()) {
+    return renderDefaultSleepScreen();
+  }
+
+  const auto pageWidth = renderer.getScreenWidth();
+  const auto pageHeight = renderer.getScreenHeight();
+  constexpr int footerHeight = 84;
+  constexpr int sideMargin = 24;
+  const int coverAreaHeight = pageHeight - footerHeight;
+
+  const auto filter = SETTINGS.sleepScreenCoverFilter;
+  const bool grayAllowed = filter == CrossPointSettings::SLEEP_SCREEN_COVER_FILTER::NO_FILTER;
+  const bool absolute = grayAllowed && renderer.supportsAbsoluteGrayscale();
+  const bool direct = absolute && renderer.supportsDirectGrayscale();
+
+  std::string coverBmpPath = SleepCoverAssets::cachedCoverPathFor(path, false, absolute);
+  if (coverBmpPath.empty() && SleepCoverAssets::prepareFullCoverForPath(path, false, &renderer, absolute)) {
+    coverBmpPath = SleepCoverAssets::cachedCoverPathFor(path, false, absolute);
+  }
+  FsFile file;
+  Bitmap bitmap(file, absolute, absolute);
+  bool coverReady = false;
+  int coverX = 0;
+  int coverY = 0;
+  if (!coverBmpPath.empty() && Storage.openFileForRead("SLP", coverBmpPath, file) &&
+      bitmap.parseHeaders() == BmpReaderError::Ok) {
+    const float scale = std::min({1.0f, static_cast<float>(pageWidth) / bitmap.getWidth(),
+                                  static_cast<float>(coverAreaHeight) / bitmap.getHeight()});
+    coverX = (pageWidth - static_cast<int>(bitmap.getWidth() * scale)) / 2;
+    coverY = (coverAreaHeight - static_cast<int>(bitmap.getHeight() * scale)) / 2;
+    coverReady = true;
+  }
+
+  const float progressPercent = RecentBookProgress::loadPercent(recentBookForPath(path));
+  char percentText[16] = "";
+  if (progressPercent >= 0.0f) {
+    snprintf(percentText, sizeof(percentText), "%d%%", static_cast<int>(std::lround(progressPercent)));
+  }
+  const GlobalReadingStats globalStats = GlobalReadingStats::load();
+  ReadingStatsDateTime today;
+  const uint16_t streak =
+      getCurrentLocalReadingStatsDateTime(today) ? globalStats.currentReadingStreak(&today) : 0;
+  char streakText[48];
+  if (streak == 0) {
+    snprintf(streakText, sizeof(streakText), "%s", tr(STR_STATS_NO_STREAK));
+  } else {
+    snprintf(streakText, sizeof(streakText), tr(STR_STATS_DAY_STREAK_FORMAT), static_cast<unsigned>(streak));
+  }
+
+  // Footer: progress bar, then "NN%" on the left and the streak on the right. Drawn in BW mode.
+  const auto drawFooter = [&]() {
+    renderer.fillRect(0, coverAreaHeight, pageWidth, footerHeight, false);
+    const int barY = coverAreaHeight + 16;
+    constexpr int barHeight = 6;
+    const int barWidth = pageWidth - sideMargin * 2;
+    renderer.drawRect(sideMargin, barY, barWidth, barHeight);
+    if (progressPercent > 0.0f) {
+      renderer.fillRect(sideMargin, barY, static_cast<int>(barWidth * std::min(progressPercent, 100.0f) / 100.0f),
+                        barHeight);
+    }
+    const int rowCenterY = barY + barHeight + (footerHeight - 16 - barHeight) / 2;
+    const int textY = rowCenterY - renderer.getLineHeight(UI_10_FONT_ID) / 2;
+    if (percentText[0] != '\0') {
+      renderer.drawText(UI_10_FONT_ID, sideMargin, textY, percentText, true, EpdFontFamily::BOLD);
+    }
+    constexpr int iconSize = 24;
+    constexpr int iconGap = 6;
+    const int streakX = pageWidth - sideMargin - renderer.getTextWidth(UI_10_FONT_ID, streakText) - iconGap - iconSize;
+    renderer.drawIcon(StreakIcon, streakX, rowCenterY - iconSize / 2, iconSize, iconSize);
+    renderer.drawText(UI_10_FONT_ID, streakX + iconSize + iconGap, textY, streakText);
+  };
+
+  // B/W frame: the final image when gray is unavailable, or the base the UltraChip conditioning needs.
+  const auto drawBwFrame = [&]() {
+    renderer.clearScreen();
+    if (coverReady && (bitmap.rewindToData() != BmpReaderError::Ok ||
+                       !renderer.drawBitmap(bitmap, coverX, coverY, pageWidth, coverAreaHeight))) {
+      coverReady = false;
+    }
+    if (!coverReady) {
+      LOG_DBG("SLP", "No cover for Cover + Stats sleep screen: %s", path.c_str());
+      const std::string recentTitle = recentTitleForPath(path);
+      const std::string title = recentTitle.empty() ? filenameFromPath(path) : recentTitle;
+      const std::string visibleTitle =
+          renderer.truncatedText(UI_12_FONT_ID, title.c_str(), pageWidth - sideMargin * 2, EpdFontFamily::BOLD);
+      renderer.drawCenteredText(UI_12_FONT_ID, coverAreaHeight / 2, visibleTitle.c_str(), true,
+                                EpdFontFamily::BOLD);
+    }
+    drawFooter();
+    if (filter == CrossPointSettings::SLEEP_SCREEN_COVER_FILTER::INVERTED_BLACK_AND_WHITE) {
+      renderer.invertScreen();
+    }
+  };
+  const auto finishBw = [&]() {
+    renderer.displayBuffer(HalDisplay::HALF_REFRESH, TURN_OFF_SCREEN_AFTER_SLEEP_REFRESH);
+    file.close();
+  };
+
+  const bool gray = coverReady && grayAllowed && bitmap.hasGreyscale();
+  if (!gray) {
+    drawBwFrame();
+    return finishBw();
+  }
+
+  // Direct skips the B/W intermediate entirely; the other modes still paint the base first.
+  if (direct) {
+    if (!renderer.displayDirectGrayscaleBase()) {
+      drawBwFrame();
+      return finishBw();
+    }
+  } else {
+    drawBwFrame();
+    if (!coverReady) return finishBw();
+    if (absolute) {
+      if (!renderer.displayAbsoluteGrayscaleBase()) return finishBw();
+    } else {
+      renderer.displayGrayscaleBase(HalDisplay::HALF_REFRESH);
+    }
+  }
+
+  // Any failure from here cancels the pending gray pass (setRenderMode(BW) does that) and shows the
+  // B/W frame, so the panel never keeps the pre-sleep screen.
+  const auto fallBackToBw = [&](const char* reason) {
+    LOG_ERR("SLP", "Cover + Stats gray pass failed: %s", reason);
+    renderer.setRenderMode(GfxRenderer::BW);
+    drawBwFrame();
+    finishBw();
+  };
+
+  // Absolute planes are complete images where white is (1,1) and black is (0,0) — the same bits a
+  // B/W draw produces — so the footer is drawn once while still in BW mode and shared by both
+  // planes. Switching back to BW mid-pass would cancel it. The cover rewrites every pixel of its
+  // own rect in each plane. Overlay masks instead start empty each pass and leave the footer to
+  // the B/W base.
+  if (absolute) {
+    renderer.clearScreen(0xFF);
+    drawFooter();
+  }
+  for (const auto mode : {GfxRenderer::GRAYSCALE_LSB, GfxRenderer::GRAYSCALE_MSB}) {
+    if (bitmap.rewindToData() != BmpReaderError::Ok) return fallBackToBw("rewind");
+    if (!absolute) renderer.clearScreen(0x00);
+    renderer.setRenderMode(mode);
+    if (!renderer.drawBitmap(bitmap, coverX, coverY, pageWidth, coverAreaHeight)) return fallBackToBw("draw");
+    if (mode == GfxRenderer::GRAYSCALE_LSB)
+      renderer.copyGrayscaleLsbBuffers();
+    else
+      renderer.copyGrayscaleMsbBuffers();
+  }
+  renderer.displayGrayBuffer(TURN_OFF_SCREEN_AFTER_SLEEP_REFRESH);
+  renderer.setRenderMode(GfxRenderer::BW);
+  file.close();
 }
 
 void SleepActivity::renderLastScreenSleepScreen() const {

@@ -35,6 +35,8 @@ bool isValidReadingStatsDate(const ReadingStatsDate& date);
 int compareReadingStatsDate(const ReadingStatsDate& lhs, const ReadingStatsDate& rhs);
 void addDaysToReadingStatsDate(ReadingStatsDate& date, int delta);
 void addSecondsToReadingStatsDateTime(ReadingStatsDateTime& dt, uint32_t seconds);
+// Shifts a local time back by the Streak Day Starts At hour so its date is the reading-streak day.
+ReadingStatsDateTime toReadingDayDateTime(const ReadingStatsDateTime& local);
 uint32_t readingStatsDayIndex(const ReadingStatsDate& date);
 bool readingStatsDateFromDayIndex(uint32_t dayIndex, ReadingStatsDate& outDate);
 uint8_t readingStatsDayOfWeekIndex(const ReadingStatsDate& date);  // Monday = 0
